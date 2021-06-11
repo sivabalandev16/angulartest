@@ -1,0 +1,24 @@
+
+
+<!-- Toolbar -->
+<div class="toolbar" role="banner">
+  
+
+<div class="content" role="main">
+
+    <span bgblueDirective>{{ title }} app is test!</span>
+
+   
+</div>
+
+</div>
+<div>
+  <app-test></app-test>
+  <app-child1  [childData1]="passData1" ></app-child1>
+  <app-child2 (nameChangevalue)="name($event)"></app-child2>
+  <p bgblue >jhjkhkjh</p>
+  {{billa}}
+</div>
+
+<button (click)="testmethod()">test</button>
+
