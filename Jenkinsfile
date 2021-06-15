@@ -1,33 +1,42 @@
-node {
-    def app
-
-    stage('Clone repository') {
-        /* Cloning the Repository to our Workspace */
-
+pipeline {
+  agent any
+  stages {
+    stage('Checkout') {
+      steps {
+        echo 'Checkout master branch'
         checkout scm
-    }
-
-    stage('Build image') {
-        /* This builds the actual image */
-
-        app = docker.build("sivabalandev30/nodeapp")
-    }
-
-    stage('Test image') {
-        
-        app.inside {
-            echo "Tests passed"
+        dir('webapp') {
+          bat 'npm install'
         }
+      }
     }
-
-    stage('Push image') {
-        /* 
-			You would need to first register with DockerHub before you can push images to your account
-		*/
-        docker.withRegistry('https://hub.docker.com/', 'sivabalandev30') {
-            app.push("${env.BUILD_NUMBER}")
-            app.push("latest")
-            } 
-                echo "Trying to Push Docker Build to DockerHub"
+    stage('Build') {
+      steps {
+        echo 'Building..'
+        dir('webapp') {
+          bat 'npm run ng -- build --prod --baseHref=/webapp/ -optimization=true'
+        }
+      }
     }
+    stage('Deploy') {
+      steps {
+        echo 'Deploying....'
+        ftpPublisher paramPublish: null, masterNodeName: '', alwaysPublishFromMaster: true, continueOnError: false, failOnError: true, publishers: [
+          [configName: 'mattdailey.net', verbose: true, transfers: [
+            [asciiMode: false, cleanRemote: true, excludes: '', flatten: false, makeEmptyDirs: tur, noDefaultExcludes: false, patternSeparator: '[, ]+',
+              remoteDirectory: "webapp", removePrefix: "webapp/dist", remoteDirectorySDF: false, sourceFiles: 'webapp/dist/**'
+            ]
+          ], usePromotionTimestamp: false, useWorkspaceInPromotion: false]
+        ]
+      }
+    }
+  }
+  post {
+    success {
+      slackSend(color: '#00FF00', message: "Build Successful")
+    }
+    failure {
+      slackSend(color: '#FF0000', message: "Build Failed")
+    }
+  }
 }
