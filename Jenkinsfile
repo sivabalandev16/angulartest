@@ -1,42 +1,23 @@
-pipeline {
-  agent any
-  stages {
-    stage('Checkout') {
-      steps {
-        echo 'Checkout master branch'
-        checkout scm
-        dir('webapp') {
-          bat 'npm install'
+node {    
+      def app     
+      stage('Clone repository') {               
+             
+            checkout scm    
+      }     
+      stage('Build image') {         
+       
+            app = docker.build("sivabalandev30/test")    
+       }     
+      stage('Test image') {           
+            app.inside {            
+             
+             sh 'echo "Tests passed"'        
+            }    
+        }     
+       stage('Push image') {
+                                                  docker.withRegistry('https://registry.hub.docker.com', 'docker-hub') {            
+       app.push("${env.BUILD_NUMBER}")            
+       app.push("latest")        
+              }    
+           }
         }
-      }
-    }
-    stage('Build') {
-      steps {
-        echo 'Building..'
-        dir('webapp') {
-          bat 'npm run build'
-        }
-      }
-    }
-    stage('Deploy') {
-      steps {
-        echo 'Deploying....'
-        ftpPublisher paramPublish: null, masterNodeName: '', alwaysPublishFromMaster: true, continueOnError: false, failOnError: true, publishers: [
-          [configName: 'mattdailey.net', verbose: true, transfers: [
-            [asciiMode: false, cleanRemote: true, excludes: '', flatten: false, makeEmptyDirs: tur, noDefaultExcludes: false, patternSeparator: '[, ]+',
-              remoteDirectory: "webapp", removePrefix: "webapp/dist", remoteDirectorySDF: false, sourceFiles: 'webapp/dist/**'
-            ]
-          ], usePromotionTimestamp: false, useWorkspaceInPromotion: false]
-        ]
-      }
-    }
-  }
-  post {
-    success {
-      slackSend(color: '#00FF00', message: "Build Successful")
-    }
-    failure {
-      slackSend(color: '#FF0000', message: "Build Failed")
-    }
-  }
-}
