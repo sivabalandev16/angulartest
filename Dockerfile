@@ -1,8 +1,9 @@
 FROM node:latest as node
-RUN mkdir -p /app
 WORKDIR /app
-COPY package*.json /app/
-RUN npm install 
-COPY . /app/
-EXPOSE 4200
-CMD ["npm", "run", "start"]
+COPY . .
+RUN npm install
+RUN npm run build --prod
+
+# stage 2
+FROM nginx:alpine
+COPY --from=node /app/dist/my-dream-app /usr/share/nginx/html
